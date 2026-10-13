@@ -1,36 +1,35 @@
 extends Node3D
 
 @export var drive_speed: float = 8.0
-@export var turn_speed: float = 2.0
+@export var reverse_speed: float = 4.0
+@export var turn_speed: float = 1.8
+@export var camera_smoothness: float = 5.0
 
-var throttle := 0.0
-var steering := 0.0
+var throttle: float = 0.0
+var steering: float = 0.0
 
-@onready var car_body: MeshInstance3D = $CarBody
-@onready var car_cabin: MeshInstance3D = $CarCabin
+@onready var car: Node3D = $Car
 @onready var camera: Camera3D = $Camera3D
 
 func _ready() -> void:
     create_mobile_controls()
 
 func _physics_process(delta: float) -> void:
-    var forward_input := Input.get_axis("ui_up", "ui_down")
+    var forward_input := Input.get_axis("ui_down", "ui_up")
     var turn_input := Input.get_axis("ui_right", "ui_left")
-    forward_input = clamp(forward_input + throttle, -1.0, 1.0)
-    turn_input = clamp(turn_input + steering, -1.0, 1.0)
 
-    if abs(forward_input) > 0.01:
-        car_body.position += -car_body.global_basis.z * forward_input * drive_speed * delta
-        car_cabin.position += -car_cabin.global_basis.z * forward_input * drive_speed * delta
+    forward_input = clampf(forward_input + throttle, -1.0, 1.0)
+    turn_input = clampf(turn_input + steering, -1.0, 1.0)
 
-    if abs(turn_input) > 0.01:
-        var turn_amount := -turn_input * turn_speed * delta
-        car_body.rotate_y(turn_amount)
-        car_cabin.rotate_y(turn_amount)
+    var speed := drive_speed if forward_input >= 0.0 else reverse_speed
+    car.position += -car.global_basis.z * forward_input * speed * delta
 
-    var target := car_body.global_position + Vector3(0, 6, 10)
-    camera.global_position = camera.global_position.lerp(target, delta * 3.0)
-    camera.look_at(car_body.global_position, Vector3.UP)
+    if absf(forward_input) > 0.05:
+        car.rotate_y(turn_input * turn_speed * delta * signf(forward_input))
+
+    var target_position := car.global_position + car.global_basis * Vector3(0.0, 5.0, 9.0)
+    camera.global_position = camera.global_position.lerp(target_position, clampf(delta * camera_smoothness, 0.0, 1.0))
+    camera.look_at(car.global_position + Vector3(0.0, 0.8, 0.0), Vector3.UP)
 
 func create_mobile_controls() -> void:
     var layer := CanvasLayer.new()
@@ -41,37 +40,44 @@ func create_mobile_controls() -> void:
     ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     layer.add_child(ui)
 
-    add_hold_button(ui, "◀", Vector2(25, -125), Vector2(85, 85), "steer_left")
-    add_hold_button(ui, "▶", Vector2(120, -125), Vector2(85, 85), "steer_right")
-    add_hold_button(ui, "▲", Vector2(-115, -220), Vector2(85, 85), "accelerate")
-    add_hold_button(ui, "▼", Vector2(-115, -125), Vector2(85, 85), "brake")
+    add_hold_button(ui, "◀", Vector2(25, -115), Vector2(80, 80), "left")
+    add_hold_button(ui, "▶", Vector2(115, -115), Vector2(80, 80), "right")
+    add_hold_button(ui, "▲", Vector2(-105, -205), Vector2(80, 80), "forward")
+    add_hold_button(ui, "▼", Vector2(-105, -115), Vector2(80, 80), "reverse")
 
 func add_hold_button(parent: Control, caption: String, offset: Vector2, button_size: Vector2, action: String) -> void:
     var button := Button.new()
     button.text = caption
-    button.custom_minimum_size = button_size
     button.size = button_size
+    button.custom_minimum_size = button_size
     button.add_theme_font_size_override("font_size", 28)
-    button.modulate = Color(0.3, 0.9, 1.0, 0.85)
+    button.modulate = Color(0.3, 0.9, 1.0, 0.9)
 
-    if action.begins_with("steer"):
+    if action == "left" or action == "right":
         button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-        button.position = Vector2(25, -125) if action == "steer_left" else Vector2(120, -125)
+        button.position = offset
     else:
         button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-        button.position = Vector2(-115, -220) if action == "accelerate" else Vector2(-115, -125)
+        button.position = offset
 
     parent.add_child(button)
-    button.button_down.connect(func(): set_control(action, true))
-    button.button_up.connect(func(): set_control(action, false))
+    button.button_down.connect(_on_control_down.bind(action))
+    button.button_up.connect(_on_control_up.bind(action))
 
-func set_control(action: String, pressed: bool) -> void:
+func _on_control_down(action: String) -> void:
     match action:
-        "steer_left":
-            steering = -1.0 if pressed else 0.0
-        "steer_right":
-            steering = 1.0 if pressed else 0.0
-        "accelerate":
-            throttle = 1.0 if pressed else 0.0
-        "brake":
-            throttle = -1.0 if pressed else 0.0
+        "left":
+            steering = -1.0
+        "right":
+            steering = 1.0
+        "forward":
+            throttle = 1.0
+        "reverse":
+            throttle = -1.0
+
+func _on_control_up(action: String) -> void:
+    match action:
+        "left", "right":
+            steering = 0.0
+        "forward", "reverse":
+            throttle = 0.0

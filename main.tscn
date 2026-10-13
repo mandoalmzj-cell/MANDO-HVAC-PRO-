@@ -1,24 +1,27 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
-[sub_resource type="BoxMesh" id="GroundMesh"]
+[ext_resource type="Script" path="res://game.gd" id="1_game"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_Ground"]
 size = Vector3(30, 0.2, 30)
 
-[sub_resource type="StandardMaterial3D" id="GroundMaterial"]
+[sub_resource type="StandardMaterial3D" id="Material_Ground"]
 albedo_color = Color(0.16, 0.18, 0.19, 1)
 roughness = 1.0
 
-[sub_resource type="BoxMesh" id="CarBodyMesh"]
+[sub_resource type="BoxMesh" id="BoxMesh_Car"]
 size = Vector3(2, 0.65, 4)
 
-[sub_resource type="StandardMaterial3D" id="CarMaterial"]
+[sub_resource type="StandardMaterial3D" id="Material_Car"]
 albedo_color = Color(0.05, 0.65, 0.9, 1)
 metallic = 0.35
 roughness = 0.35
 
-[sub_resource type="BoxMesh" id="CabinMesh"]
+[sub_resource type="BoxMesh" id="BoxMesh_Cabin"]
 size = Vector3(1.5, 0.7, 2)
 
 [node name="Main" type="Node3D"]
+script = ExtResource("1_game")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-45, -30, 0)
@@ -31,15 +34,15 @@ current = true
 
 [node name="Ground" type="MeshInstance3D" parent="."]
 position = Vector3(0, -0.1, 0)
-mesh = SubResource("GroundMesh")
-material_override = SubResource("GroundMaterial")
+mesh = SubResource("BoxMesh_Ground")
+material_override = SubResource("Material_Ground")
 
 [node name="CarBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0.45, 0)
-mesh = SubResource("CarBodyMesh")
-material_override = SubResource("CarMaterial")
+mesh = SubResource("BoxMesh_Car")
+material_override = SubResource("Material_Car")
 
 [node name="CarCabin" type="MeshInstance3D" parent="."]
 position = Vector3(0, 1.1, -0.2)
-mesh = SubResource("CabinMesh")
-material_override = SubResource("CarMaterial")
+mesh = SubResource("BoxMesh_Cabin")
+material_override = SubResource("Material_Car")

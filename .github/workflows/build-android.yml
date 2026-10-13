@@ -1,0 +1,38 @@
+name: Build MANDO SCRAP CARS APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Check project files
+        run: |
+          test -f project.godot
+          test -f world.tscn
+          test -f main.tscn
+          test -f game.gd
+          test -f export_presets.cfg
+
+      - name: Import project
+        run: godot --headless --editor --path . --quit
+
+      - name: Build Android APK
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" build/MANDO_SCRAP_CARS.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MANDO-SCRAP-CARS-APK
+          path: build/MANDO_SCRAP_CARS.apk
